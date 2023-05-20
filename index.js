@@ -12,7 +12,7 @@ app.get("/", (req, res) => {
   res.send("hello henny bony");
 });
 
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const uri =
   `mongodb+srv://${process.env.USER_NAME}:${process.env.USER_PASS}@cluster0.yrhbvyy.mongodb.net/?retryWrites=true&w=majority`;
 
@@ -31,8 +31,21 @@ async function run() {
     const toyCollection = client.db('toyDB').collection('allToy')
     // Connect the client to the server	(optional starting in v4.7)
     app.get('/toy', async (req,res)=>{
-        const result = await toyCollection.find().toArray()
-        res.send(result)
+      let query = {}
+      if(req.query?.email){
+        query = {sellerEmail: req.query.email}
+      }
+      
+      const result = await toyCollection.find(query).toArray()
+      res.send(result)
+      
+    })
+
+    app.get('/toy/:id',async (req,res)=>{
+      const id = req.params.id 
+      const  query = {_id : new ObjectId(id)}
+      const result = await toyCollection.findOne(query)
+      res.send(result)
     })
     app.post('/toy', async (req,res)=>{
         const data = req.body
