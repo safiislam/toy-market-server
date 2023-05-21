@@ -28,11 +28,31 @@ async function run() {
   try {
     const toyCollection = client.db("toyDB").collection("allToy");
     // Connect the client to the server	(optional starting in v4.7)
+    const indeKeys ={name:1,subCategory:1}
+    const indexOptions = {name : 'nameSubcategory'}
+    const result = await toyCollection.createIndex(indeKeys,indexOptions)
 
-    app.get('/alltoy',async (req,res)=>{
-      const result = await toyCollection.find().limit(20).toArray()
-      res.send(result)
-    })
+    app.get("/alltoy", async (req, res) => {
+      const result = await toyCollection.find().limit(20).toArray();
+      res.send(result);
+    });
+    app.get("/alltoy/:text", async (req, res) => {
+      const text = req.params.text;
+      const query = {
+        $or: [
+          { name: { $regex: text , $options: "i" } },
+          { subCategory: { $regex: text, $options: "i" } }
+        ]
+      };
+      const result = await toyCollection.find(query).toArray();
+    res.send(result);
+       
+     });
+  
+  
+  
+      
+    
     app.get("/toy", async (req, res) => {
       let query = {};
       if (req.query?.email) {
@@ -55,20 +75,19 @@ async function run() {
       const filter = { _id: new ObjectId(id) };
       const options = { upsert: true };
       const updateDoc = {
-        $set:{
-          ...toy
-
-        }
-      }
-      const result = await toyCollection.updateOne(filter,updateDoc,options)
-      res.send(result)
+        $set: {
+          ...toy,
+        },
+      };
+      const result = await toyCollection.updateOne(filter, updateDoc, options);
+      res.send(result);
     });
-    app.delete('/toy/:id', async (req,res)=>{
-      const id = req.params.id 
-      const query = {_id : new ObjectId(id)}
-      const result = await toyCollection.deleteOne(query)
-      res.send(result)
-    })
+    app.delete("/toy/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await toyCollection.deleteOne(query);
+      res.send(result);
+    });
     app.post("/toy", async (req, res) => {
       const data = req.body;
       const result = await toyCollection.insertOne(data);
