@@ -1,4 +1,5 @@
 const express = require("express");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const cors = require("cors");
 const app = express();
 require("dotenv").config();
@@ -8,51 +9,38 @@ console.log(process.env.USER_NAME);
 app.use(cors());
 app.use(express.json());
 
-app.get("/", (req, res) => {
-  res.send("hello henny bony");
-});
 
-const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
+
+
 const uri = `mongodb+srv://${process.env.USER_NAME}:${process.env.USER_PASS}@cluster0.yrhbvyy.mongodb.net/?retryWrites=true&w=majority`;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
-const client = new MongoClient(uri, {
-  serverApi: {
-    version: ServerApiVersion.v1,
-    strict: true,
-    deprecationErrors: true,
-  },
-});
+const client = new MongoClient(uri, { useUnifiedTopology: true}, { useNewUrlParser: true }, { connectTimeoutMS: 30000 }, { keepAlive: 1});
 
 async function run() {
   try {
     const toyCollection = client.db("toyDB").collection("allToy");
     // Connect the client to the server	(optional starting in v4.7)
-    const indeKeys ={name:1,subCategory:1}
-    const indexOptions = {name : 'nameSubcategory'}
-    const result = await toyCollection.createIndex(indeKeys,indexOptions)
 
     app.get("/alltoy", async (req, res) => {
       const result = await toyCollection.find().limit(20).toArray();
       res.send(result);
     });
     app.get("/alltoy/:text", async (req, res) => {
+      const indeKeys = { name: 1, subCategory: 1 };
+      const indexOptions = { name: "nameSubcategory" };
+      const result2 = await toyCollection.createIndex(indeKeys, indexOptions);
       const text = req.params.text;
       const query = {
         $or: [
-          { name: { $regex: text , $options: "i" } },
-          { subCategory: { $regex: text, $options: "i" } }
-        ]
+          { name: { $regex: text, $options: "i" } },
+          { subCategory: { $regex: text, $options: "i" } },
+        ],
       };
       const result = await toyCollection.find(query).toArray();
-    res.send(result);
-       
-     });
-  
-  
-  
-      
-    
+      res.send(result);
+    });
+
     app.get("/toy", async (req, res) => {
       let query = {};
       if (req.query?.email) {
@@ -93,9 +81,9 @@ async function run() {
       const result = await toyCollection.insertOne(data);
       res.send(result);
     });
-    await client.connect();
+    // client.connect();
     // Send a ping to confirm a successful connection
-    await client.db("admin").command({ ping: 1 });
+    // await client.db("admin").command({ ping: 1 });
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!"
     );
@@ -106,6 +94,9 @@ async function run() {
 }
 run().catch(console.dir);
 
-app.listen(port, (err) => {
-  console.log(err);
+app.get("/", (req, res) => {
+  res.send("hello henny bony");
+});
+app.listen(port,()=>{
+  console.log('server is running');
 });
